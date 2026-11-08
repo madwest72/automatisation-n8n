@@ -1,0 +1,12 @@
+# Credentials and private local exports
+.env
+.env.*
+!.env.example
+credentials*.json
+*.pem
+*.key
+private/
+local/
+__pycache__/
+.DS_Store
+Thumbs.db
