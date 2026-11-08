@@ -1,0 +1,1100 @@
+{
+  "name": "Notion to Google RDV & Contact",
+  "nodes": [
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "get",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $('Get many database pages').item.json.property_projet_s_li_s[0] }}",
+          "mode": "id"
+        },
+        "simple": ""
+      },
+      "id": "c511737a-6f79-4eba-8a43-500feb103996",
+      "name": "Get Projet",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [
+        80,
+        -208
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "get",
+        "pageId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $json.properties.Client.relation[0].id }}",
+          "__regex": "^([0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12})"
+        },
+        "simple": false
+      },
+      "id": "733e3866-8448-4b6d-8f95-ae0cf259ae91",
+      "name": "Get Client",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [
+        256,
+        -208
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "fields": {
+          "values": [
+            {
+              "name": "echange_nom",
+              "stringValue": "={{ $('Get many database pages').item.json.name }}"
+            },
+            {
+              "name": "echange_statut",
+              "stringValue": "={{ $('Get many database pages').item.json.property_statut }}"
+            },
+            {
+              "name": "echange_date",
+              "stringValue": "={{ $('Get many database pages').item.json.property_date.start }}"
+            },
+            {
+              "name": "echange_url",
+              "stringValue": "={{ $('Get many database pages').item.json.url }}"
+            },
+            {
+              "name": "projet_livraison",
+              "stringValue": "={{ $('Get Projet').item.json.properties.Livraison.place.address }}"
+            },
+            {
+              "name": "client_adresse",
+              "stringValue": "={{ $('Get Client').item.json.properties['Adresse Facturation'].place.name }}"
+            },
+            {
+              "name": "client_nom",
+              "stringValue": "={{ $node[\"Get Client\"].json.properties.Nom.title[0].plain_text }}"
+            },
+            {
+              "name": "echange_comment",
+              "stringValue": "={{ $json.resultat }}"
+            },
+            {
+              "name": "start",
+              "stringValue": "={{ $('Get many database pages').item.json.property_date.start }}"
+            },
+            {
+              "name": "summary",
+              "stringValue": "={{ $('Get many database pages').item.json.name }}"
+            },
+            {
+              "name": "description",
+              "stringValue": "={{ $('Get many database pages').item.json.property_brief }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "202bf07c-7602-4409-a398-80ebb323456f",
+      "name": "Variables Simplifiées",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        816,
+        -208
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.create_event }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "bf83a399-05ce-48e6-be75-2436fee2d485",
+      "name": "Filter RDV",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 1,
+      "position": [
+        1248,
+        -208
+      ]
+    },
+    {
+      "parameters": {
+        "calendar": "primary",
+        "start": "={{ $json.start }}",
+        "end": "={{ $json.end || DateTime.fromISO($json.start).plus({ hours: 1 }).toISO() }}",
+        "useDefaultReminders": "={{ false }}",
+        "additionalFields": {
+          "description": "=Accès au chantier : {{ $('Get Projet').item.json.properties['Accès au chantier'].rich_text[0].text.content || 'inconnu' }}\nBrief : {{ $('Get many database pages').item.json.property_brief }}\nTel Client : {{ $('Get Client').item.json.properties['Mobile Facturation'].phone_number }}\n{{ $json.description }} : {{ $('Get Projet').item.json.properties['URL plateforme '].url }}\nLien Plateforme : {{ $('Get Projet').item.json.properties['URL plateforme '].url }}\nLien du projet Notion : {{ $('Get Projet').item.json.url }}\nLien fiche client : {{ $('Get Client').item.json.url }}\nCommentaire : {{ $('Variables Simplifiées').item.json.echange_comment }}\n\n ",
+          "location": "={{ $('Get Client').item.json.properties['Adresse Facturation'].place.address || 'inconnu' }}",
+          "summary": "={{ $json.summary }}"
+        },
+        "remindersUi": {
+          "remindersValues": [
+            {
+              "method": "popup",
+              "minutes": 1440
+            },
+            {
+              "method": "popup",
+              "minutes": 120
+            },
+            {
+              "method": "popup",
+              "minutes": 40
+            }
+          ]
+        }
+      },
+      "id": "c460c086-6a8a-4a19-8c95-ca47c96cf090",
+      "name": "Créer Événement",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1,
+      "position": [
+        1792,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "if ($json.echange_statut) {\n  // On passe en majuscule et on cherche \"RDV\"\n  if ($json.echange_statut.toUpperCase().includes(\"RDV\")) {\n    $json.create_event = true;\n  } else {\n    $json.create_event = false;\n  }\n} else {\n  // Si le champ echange_statut est complètement vide\n  $json.create_event = false;\n}\n\nreturn $input.item;"
+      },
+      "id": "c560b788-bdee-45ea-b6de-86f4118e77ee",
+      "name": "Code in JavaScript",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1056,
+        -208
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "78a9b1c2-d3e4-4f5g-6h7i-8j9k0l1m2n3o",
+              "name": "contacts_liste",
+              "value": "={{ $('Get Client').item.json.properties[\"Contact(s) Lié(s)\"].relation }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "166b59d6-a0bd-409e-ab52-bee6d15a3ee9",
+      "name": "Préparer Liste",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -80,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "contacts_liste",
+        "options": {}
+      },
+      "id": "130b3635-770f-4e4b-a5bb-412e60fdfd18",
+      "name": "Split Contacts",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 3,
+      "position": [
+        112,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "get",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $json.id || $('Get Client').first().json.id }}",
+          "mode": "id"
+        }
+      },
+      "id": "3e7b20e1-d1bd-409b-a9be-d43194156164",
+      "name": "Get Contact Detail",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [
+        256,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.resourceName }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "ae2b971f-88f4-45eb-b997-5b5c3df5e350",
+      "name": "Contact Existe ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1088,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "limit": 1,
+        "fields": [
+          "*"
+        ],
+        "useQuery": true,
+        "query": "={{ $json.email || $json.mailpro }}"
+      },
+      "id": "5528fc37-0158-4302-bc68-5a296d32b271",
+      "name": "Get many contacts",
+      "type": "n8n-nodes-base.googleContacts",
+      "typeVersion": 1,
+      "alwaysOutputData": true,
+      "position": [
+        928,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "familyName": "={{ $('Code in JavaScript3').item.json.nom }}",
+        "givenName": "={{ $('Code in JavaScript3').item.json.prenom }}",
+        "additionalFields": {
+          "addressesUi": {
+            "addressesValues": {
+              "streetAddress": "={{ $('Code in JavaScript3').item.json.adresse_pro || $('Code in JavaScript3').item.json.adresse_classique || \"\" }}",
+              "type": "work"
+            }
+          },
+          "companyUi": {
+            "companyValues": [
+              {
+                "name": "={{ $('Get Client').item.json.properties.Nom.title[0].text.content }}"
+              }
+            ]
+          },
+          "emailsUi": {
+            "emailsValues": [
+              {
+                "type": "home",
+                "value": "={{ $('Code in JavaScript3').item.json.email }}"
+              },
+              {
+                "type": "work",
+                "value": "={{ $('Code in JavaScript3').item.json.mailpro }}"
+              }
+            ]
+          },
+          "biographies": "=URL Contact :  {{ $('Code in JavaScript3').item.json.url }}\nObservations Contact : {{ $('Code in JavaScript3').item.json.observations }}\n{{ $('Get Projet').item.json.properties['URL plateforme '].url }}\nAdresse facturation : {{ $('Variables Simplifiées').item.json.projet_livraison }} \nTel facturation : {{ $('Code in JavaScript3').item.json.telephone || $('Code in JavaScript3').item.json.telpro }} {{ $('Get Projet').item.json.properties['Accès au chantier'] }}",
+          "phoneUi": {
+            "phoneValues": [
+              {
+                "type": "main",
+                "value": "={{ $('Code in JavaScript3').item.json.telephone }}"
+              },
+              {
+                "type": "work",
+                "value": "={{ $('Code in JavaScript3').item.json.telpro}}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "3cf8b15d-a900-415e-8bd5-9b645de81bb3",
+      "name": "Create a contact",
+      "type": "n8n-nodes-base.googleContacts",
+      "typeVersion": 1,
+      "position": [
+        1328,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "contactId": "={{ $json.resourceName.split('/')[1] }}",
+        "updateFields": {
+          "familyName": "={{ $('Code in JavaScript3').item.json.nom }}",
+          "givenName": "={{ $('Code in JavaScript3').item.json.prenom }}",
+          "addressesUi": {
+            "addressesValues": {
+              "streetAddress": "={{ $('Code in JavaScript3').item.json.adresse_pro || $('Code in JavaScript3').item.json.adresse_classique || \"\" }}",
+              "type": "work"
+            }
+          },
+          "companyUi": {
+            "companyValues": [
+              {
+                "name": "={{ $('Get Client').item.json.properties.Nom.title[0].text.content }}"
+              }
+            ]
+          },
+          "emailsUi": {
+            "emailsValues": [
+              {
+                "type": "home",
+                "value": "={{ $('Code in JavaScript3').item.json.email }}"
+              },
+              {
+                "type": "work",
+                "value": "={{ $('Code in JavaScript3').item.json.mailpro }}"
+              }
+            ]
+          },
+          "biographies": "=URL Contact :  {{ $('Code in JavaScript3').item.json.url }}\nObservations Contact : {{ $('Code in JavaScript3').item.json.observations }}\n{{ $('Get Projet').item.json.properties['URL plateforme '].url }}\nAdresse facturation : {{ $('Variables Simplifiées').item.json.projet_livraison }} \nTel facturation : {{ $('Code in JavaScript3').item.json.telephone || $('Code in JavaScript3').item.json.telpro }} {{ $('Get Projet').item.json.properties['Accès au chantier'] }}",
+          "phoneUi": {
+            "phoneValues": [
+              {
+                "type": "main",
+                "value": "={{ $('Code in JavaScript3').item.json.telephone }}"
+              },
+              {
+                "type": "work",
+                "value": "={{ $('Code in JavaScript3').item.json.telpro}}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "db7f9e5b-4807-487a-aee3-05c4cdeeb5ac",
+      "name": "Update Google Contact",
+      "type": "n8n-nodes-base.googleContacts",
+      "typeVersion": 1,
+      "position": [
+        1328,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $('Get many database pages').item.json.id }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "URL calendar|url",
+              "ignoreIfEmpty": true,
+              "urlValue": "={{ $json.htmlLink }}"
+            },
+            {
+              "key": "ID Cal|rich_text",
+              "textContent": "={{ $json.id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "13b0d444-4f2b-4827-89c2-50423237469c",
+      "name": "Update a database page",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        2000,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "6635190e-b5ad-4f98-b594-a923830d615e",
+              "leftValue": "={{ $('Get many database pages').item.json.property_id_cal }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c78d7557-4276-4644-b839-1bd421244690",
+      "name": "If",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1584,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "calendar": "primary",
+        "eventId": "={{ $('Get many database pages').item.json.property_id_cal }}",
+        "useDefaultReminders": false,
+        "updateFields": {
+          "description": "=Accès au chantier : {{ $('Get Projet').item.json.properties['Accès au chantier'].rich_text[0].text.content }}\nBrief : {{ $('Get many database pages').item.json.property_brief }}\nTel Client : {{ $('Get many database pages').item.json.property_t_l_phone }}\n{{ $json.description }} : {{ $('Get Projet').item.json.properties['URL plateforme '].url }}\nLien Plateforme : {{ $('Get Projet').item.json.properties['URL plateforme '].url }}\nLien du projet Notion : {{ $('Get Projet').item.json.url }}\nLien fiche client : {{ $('Get Client').item.json.url }}\nCommentaire : {{ $('Variables Simplifiées').item.json.echange_comment }}",
+          "end": "={{ $json.end || DateTime.fromISO($json.start).plus({ hours: 1 }).toISO() }}",
+          "location": "={{ $json.location }}",
+          "start": "={{ $json.start }}",
+          "summary": "={{ $json.summary }}"
+        },
+        "remindersUi": {
+          "remindersValues": [
+            {
+              "method": "popup",
+              "minutes": 1440
+            },
+            {
+              "method": "popup",
+              "minutes": 120
+            },
+            {
+              "method": "popup",
+              "minutes": 40
+            }
+          ]
+        }
+      },
+      "id": "498b15e7-7e91-44bc-abf4-ff890c4121cc",
+      "name": "Mettre à jour l'événement (Nouveau)",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1,
+      "position": [
+        1792,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.notion.com/v1/comments?block_id={{ $('Get many database pages').item.json.id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "notionApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "23b49f27-4061-4853-a6e2-07280014f6d5",
+      "name": "HTTP Request1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        448,
+        -208
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// On récupère tous les textes, on filtre les vides, et on sépare par un double retour à la ligne\nconst listeCommentaires = $json.results.map(c => c.rich_text[0].plain_text);\n\nconst texteCommentaires = \"--- COMMENTAIRES ---\\n\" + listeCommentaires.join('\\n');\n\nreturn { resultat: texteCommentaires };"
+      },
+      "id": "b49a4540-0a02-4161-92ed-44f23f514738",
+      "name": "Code in JavaScript1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        -208
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "445949aa-0799-41fc-a8c0-4f7d1d548356",
+      "name": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        112,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "fc7a6e7d-0214-44f7-8164-7a24e227a5af",
+              "leftValue": "={{ $json.property_google_cal }}",
+              "rightValue": "Save to Gcal",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "dbb34097-0e46-4d7e-8041-f8d33f761380",
+      "name": "If2",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -304,
+        -208
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $('Get many database pages').item.json.id }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Google Cal|select",
+              "selectValue": "Saved"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3e4fcc5c-6723-43ca-a612-33adefe1703f",
+      "name": "Update a database page1",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        2208,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $('Get many database pages').item.json.id }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Google Cal|select",
+              "selectValue": "Saved"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "252361eb-fd9a-4c19-b090-65e53c0e5622",
+      "name": "Update a database page2",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        1968,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "content": "1. DÉCLENCHEMENT & FILTRAGE\n\nTrigger : Le workflow s'exécute régulièrement.\n\nRécupération : Recherche les fiches \"Échanges\" ayant le statut \"Save to Gcal\".\n\nVérification (If2) : Si aucune fiche n'est trouvée, le processus s'arrête.\n\n📦 2. ENRICHISSEMENT DES DONNÉES\n\nGet Projet & Client : Récupère les informations liées dans les autres bases de données Notion.\n\nVariables Simplifiées : Centralise, nettoie et prépare les données pour la suite.\n\n🧠 3. ANALYSE IA & DÉCISION\n\nGemini (API) : L'IA analyse le texte pour valider s'il s'agit bien d'un RDV à planifier (ex: détection du mot 'RDV').\n\nFilter RDV : Stoppe le workflow si l'IA détermine qu'aucun événement ne doit être créé",
+        "height": 320,
+        "width": 784
+      },
+      "id": "0e207f57-ce8a-4442-a51b-a63f1f2989cc",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -592,
+        -576
+      ]
+    },
+    {
+      "parameters": {
+        "content": "1. VÉRIFICATION DE L'EXISTANT\n\nLe nœud \"If\" vérifie si la fiche Notion possède déjà un identifiant \"ID Cal\".\n\n⚡ 2. ACTIONS CALENDRIER\n\nID VIDE ➡️ Créer Événement : Crée le RDV sur Google Calendar avec toutes les infos (brief, adresses, liens, commentaires).\n\nID REMPLI ➡️ Mettre à jour l'événement : Modifie le RDV existant (Attention : ne pas supprimer l'ID dans Notion pour que cela fonctionne).\n\n🏁 3. CLÔTURE DE L'ACTION\n\nMet à jour la fiche Notion avec l'ID et le lien direct vers le calendrier Google.\n\n⚠️ Étape Finale : Repasse automatiquement le statut de la fiche sur \"Saved\" pour valider et clore le processus",
+        "height": 256,
+        "width": 976
+      },
+      "id": "2f4833e6-41ee-4e2f-8496-84f8304dc9d5",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        320,
+        -560
+      ]
+    },
+    {
+      "parameters": {
+        "content": "PRÉPARATION\n\nContact relié ? : Vérifie si le client dispose de contacts associés.\n\nSplit & Get Detail : Iteère sur la liste pour traiter chaque contact un par un et extrait ses coordonnées depuis Notion.\n\n🔵 2. GOOGLE CONTACTS\n\nRecherche : Cherche le contact existant via son adresse email.\n\nAction : Si trouvé, met à jour la fiche. Sinon, crée un nouveau contact complet (Nom, Prénom, Tél, Mail, Adresse).\n\n🟠 3. CRM AXONAUT\n\nVérification : Cherche si l'adresse email est déjà enregistrée dans Axonaut.\n\nAction :\n\nOUI ➡️ Met à jour le contact existant.\n\nNON ➡️ Crée automatiquement la fiche Société/Prospect, puis y ajoute le nouveau contac",
+        "height": 336,
+        "width": 832
+      },
+      "id": "bc4dd00b-988b-4dae-ac80-4c65419ec0f7",
+      "name": "Sticky Note2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1456,
+        -576
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "02f09ae8-8552-4e22-8d18-c69f9f793db0",
+      "name": "Trigger Échanges",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -672,
+        -208
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "REPLACE_NOTION_ECHANGES_DATABASE_ID",
+          "mode": "id"
+        },
+        "limit": 3,
+        "filterType": "manual",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Google Cal|select",
+              "condition": "equals",
+              "selectValue": "Save to Gcal"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e07b17a6-b28d-403a-ba82-66470584b723",
+      "name": "Get many database pages",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        -496,
+        -208
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "b5090b54-0608-4b8c-ad1d-f4ea0d7014f1",
+              "leftValue": "={{ $('Get Client').item.json.properties[\"Contact(s) Lié(s)\"]?.relation }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "6d98bc8b-997e-4588-9e4c-953a08e007b3",
+      "name": "contact relier ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -320,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "4f128600-bfc2-4d23-a518-c01118b6959d",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        496,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const nomComplet = $json.property_nom || $json.name || \"\";\nconst prenom = nomComplet.split(' ')[0] || \"\";\nconst nomFamille = nomComplet.split(' ').slice(1).join(' ') || \"\";\n\nreturn {\n  email: $json.property_email || \"\",\n  mailpro: $json.property_email_facturation || \"\",\n  telephone: $json.property_phone_number || \"\",\n  telpro: $json.property_mobile_facturation || \"\",\n  prenom: prenom,\n  nom: nomFamille,\n  nom_complet: nomComplet,\n  url: $json.url || \"\",\n  adresse: $json.property_adresse || \"\",\n  adresse_pro: $json.property_adresse_facturation || \"\",\n  observations: $json.property_observations || \"\"\n};\n"
+      },
+      "id": "c5e2dd0d-375d-4d3d-a76c-4e2168070089",
+      "name": "Code in JavaScript3",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        48
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get Projet": {
+      "main": [
+        [
+          {
+            "node": "Get Client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Client": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Variables Simplifiées": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter RDV": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "contact relier ?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Filter RDV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Préparer Liste": {
+      "main": [
+        [
+          {
+            "node": "Split Contacts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Contacts": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Get Contact Detail": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many contacts": {
+      "main": [
+        [
+          {
+            "node": "Contact Existe ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a contact": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contact Existe ?": {
+      "main": [
+        [
+          {
+            "node": "Update Google Contact",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create a contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Créer Événement": {
+      "main": [
+        [
+          {
+            "node": "Update a database page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update a database page": {
+      "main": [
+        [
+          {
+            "node": "Update a database page1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Créer Événement",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mettre à jour l'événement (Nouveau)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Variables Simplifiées",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Get Contact Detail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "Get Projet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mettre à jour l'événement (Nouveau)": {
+      "main": [
+        [
+          {
+            "node": "Update a database page2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger Échanges": {
+      "main": [
+        [
+          {
+            "node": "Get many database pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many database pages": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "contact relier ?": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Préparer Liste",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Code in JavaScript3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Google Contact": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript3": {
+      "main": [
+        [
+          {
+            "node": "Get many contacts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner",
+    "timeSavedMode": "fixed",
+    "timezone": "Europe/Paris"
+  },
+  "nodeGroups": [],
+  "tags": []
+}
