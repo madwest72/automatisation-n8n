@@ -1,0 +1,1558 @@
+{
+  "name": "WORKING Prospect to Notion",
+  "nodes": [
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "value": "REPLACE_NOTION_CLIENTS_DATABASE_ID",
+          "mode": "id"
+        },
+        "title": "={{ $('Variables Normalisées1').first().json.nom }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Nom|title",
+              "title": "={{ $('Variables Normalisées1').first().json.nom }}"
+            },
+            {
+              "key": "Mobile Facturation|phone_number",
+              "phoneValue": "={{ $('Variables Normalisées1').first().json.telephone }}"
+            },
+            {
+              "key": "Canal de provenance|select",
+              "selectValue": "={{ $('Variables Normalisées1').first().json.provenance }}"
+            },
+            {
+              "key": "Email Facturation|email",
+              "emailValue": "={{ $('Variables Normalisées1').first().json.email }}"
+            },
+            {
+              "key": "Autre(s) Information(s)|rich_text",
+              "textContent": "={{ $('Code in JavaScript1').item.json.contact }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d76662d1-7505-4ab4-81cb-7714ba999030",
+      "name": "Notion Create Client",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "alwaysOutputData": true,
+      "position": [
+        2464,
+        1264
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://app.pennylane.com/api/external/v1/customers",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "pennylaneApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"customer\": {\n    \"name\": \"{{ $('Variables Normalisées1').first().json.nom }}\",\n    \"emails\": [\"{{ $('Variables Normalisées1').first().json.email }}\"],\n    \"phone\": \"{{ $('Variables Normalisées1').first().json.telephone }}\",\n    \"customer_type\": \"individual\"\n  }\n}",
+        "options": {}
+      },
+      "id": "f3004287-168a-45cb-a04f-0a2e4f0613fb",
+      "name": "Pennylane Create Customer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        2768,
+        1152
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "REPLACE_NOTION_CLIENTS_DATABASE_ID",
+          "mode": "id"
+        },
+        "limit": 1,
+        "filterType": "json",
+        "filterJson": "={\n  \"property\": \"Nom\",\n  \"title\": {\n    \"equals\": \"{{ $json.nom }}\"\n  }\n}",
+        "options": {}
+      },
+      "id": "0efb7bd7-4fd5-45d0-84ef-8707ab3b4329",
+      "name": "Get many database pages",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "alwaysOutputData": true,
+      "position": [
+        2512,
+        848
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "94784a87-9cdd-4403-be5c-4421deee326b",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "27e5372c-3be2-45f9-bf48-34ec733a7940",
+      "name": "If2",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2704,
+        848
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "71ec78a1-e2e7-4a9e-aa79-f5dd3e6423ba",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "afd58e81-d6ff-4c82-a10e-070e0241ffc3",
+      "name": "If3",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "alwaysOutputData": false,
+      "position": [
+        3120,
+        784
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "hub-nom",
+              "name": "nom",
+              "value": "={{ $json.nom || $json.output?.nom || (typeof $json.output === 'string' ? JSON.parse($json.output).nom : '') || $json.body?.nom }}",
+              "type": "string"
+            },
+            {
+              "id": "hub-tel",
+              "name": "telephone",
+              "value": "={{ $json.telephone || $json.output?.telephone || (typeof $json.output === 'string' ? JSON.parse($json.output).telephone : '') || $json.body?.telephone }}",
+              "type": "string"
+            },
+            {
+              "id": "hub-loc",
+              "name": "localisation",
+              "value": "={{ $json.localisation || $json.output?.localisation || (typeof $json.output === 'string' ? JSON.parse($json.output).localisation : '') || $json.body?.localisation }}",
+              "type": "string"
+            },
+            {
+              "id": "hub-url",
+              "name": "URL plateforme",
+              "value": "={{ $json['URL plateforme'] || $json.output?.['URL plateforme'] || (typeof $json.output === 'string' ? JSON.parse($json.output)['URL plateforme'] : '') || $json.body?.['URL plateforme'] }}",
+              "type": "string"
+            },
+            {
+              "id": "hub-desc",
+              "name": "description",
+              "value": "={{ $json.description || $json.output?.description || (typeof $json.output === 'string' ? JSON.parse($json.output).description : '') || $json.body?.description }}",
+              "type": "string"
+            },
+            {
+              "id": "3732aac7-5a96-4ec9-95a2-a691acd6663f",
+              "name": "provenance",
+              "value": "={{ $json.provenance || $json.output?.provenance || $json.body?.provenance || (typeof $json.output === 'string' ? JSON.parse($json.output).provenance : 'Inconnu') }}",
+              "type": "string"
+            },
+            {
+              "id": "8798f45b-d2d6-4089-8722-43cb747388f9",
+              "name": "email",
+              "value": "={{ $json.email || $json.body?.email }}",
+              "type": "string"
+            },
+            {
+              "id": "bd2579d2-6911-46b4-bcd0-e02bcb80af73",
+              "name": "type_projet",
+              "value": "={{ $json['Type de projet'] || $json.output?.['Type de projet'] || (typeof $json.output === 'string' ? JSON.parse($json.output)['Type de projet'] : '') || $json.body?.['Type de projet'] }}",
+              "type": "string"
+            },
+            {
+              "id": "2c4e6055-638e-4a49-8cf4-6cda18e0a55c",
+              "name": "liens_fichiers",
+              "value": "=={{ [ $json.vrai_id ? \"https://drive.google.com/uc?export=download&id=\" + $json.vrai_id : null, $json['joints'] || $json.output?.['joints'] || (typeof $json.output === 'string' ? JSON.parse($json.output)['joints'] : null) || $json.body?.['joints'] ].filter(item => item && item !== 'Aucun fichier' && item !== 'Non renseigné' && item !== 'Aucun lien').join(' | ') }}",
+              "type": "string"
+            },
+            {
+              "id": "a9dbf164-f5bb-46cc-81ad-dcbbab77895c",
+              "name": "contact",
+              "value": "={{ $json.contact_secondaire?.nom || $json.output?.contact_secondaire?.nom || (typeof $json.output === 'string' ? JSON.parse($json.output).contact_secondaire?.nom : '') || $json.body?.contact_secondaire?.nom || 'Non renseigné' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0baef0a1-c692-4ebc-861a-a0abf61839e9",
+      "name": "Variables Normalisées1",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2128,
+        848
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "REPLACE_TRAVAUX_WEBHOOK_PATH",
+        "options": {}
+      },
+      "id": "47c1ca6b-5bbc-4b51-96bd-427497dc0d80",
+      "name": "Travaux.com Scraper",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "alwaysOutputData": false,
+      "position": [
+        544,
+        1024
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "REPLACE_HABITATPRESTO_WEBHOOK_PATH",
+        "options": {}
+      },
+      "id": "a3622d8f-2147-4aa2-bbdf-f8476aed517c",
+      "name": "HabitatPresto Scraper",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "alwaysOutputData": false,
+      "position": [
+        544,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "value": "REPLACE_NOTION_PIPELINE_DATABASE_ID",
+          "__rl": true,
+          "mode": "id"
+        },
+        "title": "={{ ($('Variables Normalisées1').first().json.nom || '').toString().replace(/\\s+/g, ' ').trim() }} - {{ $('Variables Normalisées1').first().json.type_projet }}",
+        "simple": false,
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "URL plateforme |url",
+              "ignoreIfEmpty": true,
+              "urlValue": "={{ ($('Variables Normalisées1').first().json['URL plateforme'] || '').toString().startsWith('http') ? $('Variables Normalisées1').first().json['URL plateforme'] : '' }}"
+            },
+            {
+              "key": "Nom du projet|title",
+              "title": "={{ ($('Variables Normalisées1').first().json.nom || '').toString().replace(/\\s+/g, ' ').trim() }} - {{ $('Variables Normalisées1').first().json.type_projet }}"
+            },
+            {
+              "key": "Brief|rich_text",
+              "textContent": "={{ $('Variables Normalisées1').first().json.description }}"
+            },
+            {
+              "key": "Client|relation",
+              "relationValue": [
+                "={{ $('Get many database pages').first()?.json?.id || $('Notion Create Client').first()?.json?.id }}"
+              ]
+            },
+            {
+              "key": "Type de projet|rich_text",
+              "textContent": "={{ $('Variables Normalisées1').first().json.type_projet }}"
+            }
+          ]
+        },
+        "blockUi": {
+          "blockValues": []
+        },
+        "options": {}
+      },
+      "id": "26b16b51-e21d-4ea8-9a98-55473e09a2a1",
+      "name": "Notion Create Pipeline1",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        2944,
+        992
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "REPLACE_HOUZZ_WEBHOOK_PATH",
+        "options": {}
+      },
+      "id": "7e96b381-bc5f-4fd8-8b7f-38fc53474f66",
+      "name": "houzzscrapper",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        544,
+        1168
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "REPLACE_NOTION_PIPELINE_DATABASE_ID",
+          "mode": "id"
+        },
+        "limit": 1,
+        "filterType": "json",
+        "filterJson": "={\n  \"property\": \"URL plateforme \",\n  \"url\": {\n    \"equals\": \"{{ $('Variables Normalisées1').first().json['URL plateforme'] }}\"\n  }\n}",
+        "options": {}
+      },
+      "id": "f21899fd-cd5d-4a7f-bdc9-1c41b00466a8",
+      "name": "Get many database pages2",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "alwaysOutputData": true,
+      "position": [
+        2944,
+        784
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "6df89593-b964-44bf-bc7b-b8c6b68e460a",
+              "leftValue": "={{ $('Variables Normalisées1').first().json.liens_fichiers }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e917088f-9e16-479f-a921-9f8e0eadd0fe",
+      "name": "If",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3120,
+        992
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.notion.com/v1/pages/{{ $('Notion Create Pipeline1').item.json.id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "notionApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  \"properties\": {\n    \"Fichiers et médias\": {\n      \"files\": (($('Variables Normalisées1').all().map(i => i.json.liens_fichiers || '').join(' ')).match(/https?:\\/\\/[^\\s,\"]+/g) || []).map((url, i) => ({\n        \"name\": \"Photo \" + (i+1),\n        \"type\": \"external\",\n        \"external\": { \"url\": url }\n      }))\n    }\n  }\n} }}",
+        "options": {}
+      },
+      "id": "258923fe-76b8-45f1-aa00-fb1204c8ed2c",
+      "name": "HTTP Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        3328,
+        976
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Voici l'e-mail transféré du prospect à analyser :\nExpéditeur : {{ $('Code in JavaScript').first().json.headers.from || $('Code in JavaScript').first().json.from }}\nObjet : {{ $('Code in JavaScript').first().json.subject }}\nContenu du mail :\n{{ $('Code in JavaScript').first().json.textAsHtml || $('Code in JavaScript').first().json.html || $('Code in JavaScript').first().json.text }}\n",
+        "options": {
+          "systemMessage": "Tu es un automate d'extraction de données pour une entreprise de menuiserie et d'agencement sur mesure.\nTu réponds UNIQUEMENT par un objet JSON, sans texte avant ni après, et sans balise de code.\n\nClés obligatoires (toutes présentes, aucune supprimée) :\nnom, telephone, email, localisation, \"URL plateforme\", description, brief, provenance, \"Type de projet\", joints, contact_secondaire (objet avec nom, telephone, email).\n\nRègles :\n- Le contact principal DOIT être l'expéditeur de l'e-mail. Si une deuxième personne est mentionnée, place ses informations dans contact_secondaire.\n- Si une information est absente de l'e-mail, écris \"Non renseigné\". Ne supprime jamais la clé.\n- provenance : écris toujours \"E-mail\".\n- joints : uniquement les liens URL complets commençant par https:// vers un fichier ou un Drive trouvés dans l'e-mail, séparés par \" | \". Ne mets jamais un simple nom de fichier.\n- \"Type de projet\" : les produits ou travaux précis (ex : Fenêtres, Portes-fenêtres, Verrières, Escalier, Dressing). Ignore les mots génériques (\"Ouvertures\", \"Menuiserie\"), retire la ville et le code postal."
+        }
+      },
+      "id": "41bbe6ef-0420-4f20-9b95-17af2a553a1e",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1328,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. On récupère le JSON généré par l'IA\nlet iaData = $('AI Agent').first().json;\n\n// Nettoyage classique\nif (iaData.output && typeof iaData.output === 'string') {\n    try {\n        let cleanText = iaData.output.replace(/```json/gi, '').replace(/```/g, '').trim();\n        iaData = JSON.parse(cleanText);\n    } catch (e) {}\n} else if (iaData.output) {\n    iaData = iaData.output;\n}\n\n// ====================================================================\n// LE PLAN B INFAILLIBLE : On extrait les liens en force sans l'IA\n// ====================================================================\n\n// On va chercher le code HTML du mail dans ton nœud \"Get a message\"\nconst mailHtml = $('Get a message').first().json.html || $('Get a message').first().json.textAsHtml || $('Get a message').first().json.snippet || \"\";\n\n// On utilise une formule (Regex) pour aspirer strictement les liens Drive et Google Photos\nconst regexLiens = /https?:\\/\\/(?:drive\\.google\\.com|photos\\.app\\.goo\\.gl)[^\\s\"'>]+/gi;\nconst liensTrouves = mailHtml.match(regexLiens) || [];\n\n// Si on a trouvé des liens, on supprime les doublons et on force l'écriture dans \"joints\"\nif (liensTrouves.length > 0) {\n    const liensUniques = [...new Set(liensTrouves)];\n    iaData.joints = liensUniques.join(\" | \"); \n}\n// ====================================================================\n// Le chemin mail impose sa provenance : les scrapers ont la leur.\niaData.provenance = 'E-mail';\n// ====================================================================\n\nlet elementsPourLaBoucle = [];\nlet aTrouveDesFichiers = false;\n\n// 2. On boucle sur les vrais fichiers physiques (les JPEG, etc.)\nfor (const email of $input.all()) { \n    if (email.binary) {\n        for (const key of Object.keys(email.binary)) {\n            if (key.startsWith('attachment_')) {\n                aTrouveDesFichiers = true;\n                \n                elementsPourLaBoucle.push({\n                    json: { ...iaData },\n                    binary: {\n                        data: email.binary[key] \n                    }\n                });\n            }\n        }\n    }\n}\n\n// 3. Si aucun vrai fichier, on garde le prospect quand même\nif (!aTrouveDesFichiers) {\n    elementsPourLaBoucle.push({\n        json: { ...iaData }\n    });\n}\n\nreturn elementsPourLaBoucle;"
+      },
+      "id": "0474e3f5-3d4d-41f7-a4f3-cc5faef20d2f",
+      "name": "recupere  les medias",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1840,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://axonaut.com/api/v2/employees",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "company_id",
+              "value": "={{ $json.id }}"
+            },
+            {
+              "name": "name",
+              "value": "={{ $json.name }}"
+            },
+            {
+              "name": "email",
+              "value": "={{ $('Notion Create Client').item.json.property_email_facturation }}"
+            },
+            {
+              "name": "phone_number",
+              "value": "={{ $('Notion Create Client').item.json.property_mobile_facturation }}"
+            },
+            {
+              "name": "firstname",
+              "value": "={{ $('Notion Create Client').item.json.property_nom.split(' ')[0] }}"
+            },
+            {
+              "name": "lastname",
+              "value": "={{ $('Notion Create Client').item.json.property_nom.split(' ').slice(1).join(' ') }}"
+            },
+            {
+              "name": "address_street",
+              "value": "={{ ($('Variables Normalisées1').first().json.localisation || '').split(' - ').filter(texte => !texte.includes('estimation')).join(', ') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "751e21ff-9f27-4b81-9cd5-c16ff056db54",
+      "name": "Axonaut Create Contact",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2976,
+        1360
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://axonaut.com/api/v2/companies",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "name",
+              "value": "={{ $json.name }}"
+            },
+            {
+              "name": "is_pro",
+              "value": "false"
+            },
+            {
+              "name": "address_email",
+              "value": "={{ $json.property_email_facturation }}"
+            },
+            {
+              "name": "phone_number",
+              "value": "={{ $json.property_mobile_facturation }}"
+            },
+            {
+              "name": "comments",
+              "value": "=Canal : {{ $json.property_canal_de_provenance }} - Lien Notion : {{ $json.url }}"
+            },
+            {
+              "name": "is_prospect",
+              "value": "true"
+            },
+            {
+              "name": "address_street",
+              "value": "={{ ($('Variables Normalisées1').first().json.localisation || '').split(' - ').filter(texte => !texte.includes('estimation')).join(', ') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7823dcdf-d207-40c6-a8b7-c3ab15a265b2",
+      "name": "Axonaut Create Prospect",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        2768,
+        1360
+      ]
+    },
+    {
+      "parameters": {
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "REPLACE_GOOGLE_DRIVE_FOLDER_ID",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "5fcb7965-1497-4193-9ff7-f003b592e74d",
+      "name": "Upload file",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        2128,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "share",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "permissionsUi": {
+          "permissionsValues": {
+            "role": "reader",
+            "type": "anyone",
+            "allowFileDiscovery": true
+          }
+        },
+        "options": {}
+      },
+      "id": "dac2086c-2800-4e6c-a979-125bf29b3c6b",
+      "name": "Share file",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        2320,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "id": "54d73895-421f-4149-a599-d21f5c515680",
+      "name": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2576,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nif (items.length === 0) return [];\n\n// 1. On prend le premier élément comme base\nconst prospectUnique = { ...items[0].json };\n\n// 2. On prépare une liste vide pour stocker tous les liens\nlet tousLesLiens = [];\n\n// 3. On boucle sur chaque ligne pour récupérer et découper les liens\nitems.forEach(item => {\n    let liensBruts = item.json.liens_fichiers || \"\";\n\n    // Si la chaîne commence par \"=\" (parfois ajouté par n8n), on l'enlève\n    if (typeof liensBruts === 'string' && liensBruts.startsWith('=')) {\n        liensBruts = liensBruts.slice(1);\n    }\n\n    // On sépare les liens (qui sont collés avec des \"|\") et on nettoie les espaces\n    if (typeof liensBruts === 'string') {\n        let liensSepares = liensBruts.split('|').map(l => l.trim()).filter(l => l !== '');\n        tousLesLiens = tousLesLiens.concat(liensSepares);\n    } else if (Array.isArray(liensBruts)) {\n        tousLesLiens = tousLesLiens.concat(liensBruts);\n    }\n});\n\n// 4. LA MAGIE : On supprime tous les doublons stricts\nlet liensUniques = [...new Set(tousLesLiens)];\n\n// 5. On rassemble tout dans une seule belle chaîne de caractères propre\nprospectUnique.liens_fichiers = liensUniques.join(\"\\n\"); \n// (J'ai mis \"\\n\" pour faire des sauts de ligne sur Notion, c'est plus lisible ! \n// Si tu préfères les barres, remplace \"\\n\" par \" | \")\n\n// 6. On renvoie un SEUL et unique item parfait\nreturn [{ json: prospectUnique }];"
+      },
+      "id": "2ec54305-bfc8-48a6-9975-b48371c2733b",
+      "name": "Code in JavaScript1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2336,
+        848
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "10d79c34-e39a-468b-904c-2fede12e43c8",
+              "name": "vrai_id",
+              "value": "={{ $('Upload file').item.json.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "abffefaf-b49c-4f4a-9693-a94ab5e6d1dc",
+      "name": "Fix ID Drive",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2576,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.item.json.body || $input.item.json;\n\n// On restaure les vrais retours à la ligne\nconst contactText = (body.contactClean || \"\").replace(/##BR##/g, '\\n');\nconst infoProjetText = (body.infoProjetClean || \"\").replace(/##BR##/g, '\\n');\nconst typeProjetText = (body.typeProjetClean || \"\").replace(/##BR##/g, '\\n');\nconst adresseText = (body.adresseClean || \"\").replace(/##BR##/g, '\\n');\n\nconst getValue = (text, key) => {\n  const regex = new RegExp(`${key}\\\\s*[:]*\\\\s*(.*?)(?=\\\\n|$)`, 'i');\n  const match = text.match(regex);\n  return match ? match[1].trim() : \"\";\n};\n\nconst nom = getValue(contactText, 'name');\nconst email = getValue(contactText, 'email');\nconst telephone = getValue(contactText, 'phone');\nconst entreprise = getValue(contactText, 'companyName');\n\nconst localisation = adresseText.trim() || \n                     getValue(infoProjetText, 'localisation') || \n                     getValue(infoProjetText, 'adresse') || \n                     \"Non spécifiée\";\n\n// 🔥 Sécurité : Si le type de projet est vide, on met \"Projet Houzz\" pour éviter le crash de Notion\nconst typeProjet = typeProjetText.trim() || getValue(infoProjetText, 'type de projet') || \"Projet Houzz\";\n\nconst liensFichiers = getValue(infoProjetText, 'joints') || \"\";\nconst description = infoProjetText; \nconst urlPlateforme = body.activeTabUrl || \"\";\nconst provenance = \"Houzz\";\n\n// On génère la structure en double (avec et sans espaces) pour valider toutes tes formules\nconst dataStructure = {\n  nom: nom,\n  email: email,\n  telephone: telephone,\n  entreprise: entreprise,\n  'URL plateforme': urlPlateforme,\n  localisation: localisation,\n  description: description,\n  provenance: provenance,\n  'Type de projet': typeProjet, // ✨ Pour ta formule dans Variables Normalisées1\n  type_projet: typeProjet,      // ✨ Sécurité pour le titre de ton Notion\n  liens_fichiers: liensFichiers\n};\n\nreturn {\n  json: {\n    ...dataStructure,\n    body: dataStructure,\n    output: dataStructure\n  }\n};"
+      },
+      "id": "a93c3aaa-8e88-42f9-9f52-8fdba6cc5ed8",
+      "name": "code houzz",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        736,
+        1168
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "messageId": "={{ $json.messageId || $json.id }}",
+        "simple": false,
+        "options": {
+          "dataPropertyAttachmentsPrefixName": "attachment_",
+          "downloadAttachments": true
+        }
+      },
+      "id": "a67ee12f-adc2-42c4-8aae-307e8c5a85d9",
+      "name": "Get a message",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        944,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const cleanItems = [];\n\nfor (const item of $input.all()) {\n  const newJson = JSON.parse(JSON.stringify(item.json));\n  \n  // On efface les balises texte des images\n  if (newJson.text) {\n      newJson.text = newJson.text.replace(/\\[image:.*?\\]/gi, '');\n  }\n\n  // 🔥 ICI : On déplace les fichiers dans une propriété \"cachée\" dans le JSON\n  // L'IA ne lira pas ce contenu, mais les nœuds suivants pourront le récupérer\n  cleanItems.push({ \n    json: {\n        ...newJson,\n        _tempBinary: item.binary // On stocke les fichiers ici\n    }\n    // On ne met PAS \"binary: item.binary\" ici, pour cacher les fichiers à l'IA\n  });\n}\n\nreturn cleanItems;"
+      },
+      "id": "08358c6e-e7ce-4276-877e-c19ee4ab4f4e",
+      "name": "Code in JavaScript",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1152,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "messageId": "={{ $('Get a message').first().json.id }}",
+        "simple": false,
+        "options": {
+          "downloadAttachments": true
+        }
+      },
+      "id": "05f78bd2-09f1-4729-a454-d39aeb1beae6",
+      "name": "recupere les fichiers du mail",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1680,
+        656
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "1f1a9aec-b58b-4137-8dfe-961ac639fe9d",
+              "leftValue": "={{ Object.keys($binary || {}).length > 0 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "8e32b71e-dcb6-456a-bf88-51b46aba78ca",
+      "name": "If1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1888,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "content": "1. CENTRALISATION & NETTOYAGE\n\nVariables Normalisées1 : Rassemble et met au propre toutes les données du prospect (qu'elles viennent de Gmail ou des Scrapers comme Houzz, HabitatPresto, Travaux.com).\n\nCode in JavaScript1 : Supprime les doublons et nettoie la liste des liens de fichiers.\n\n🔍 2. VÉRIFICATION & CRÉATION DU CLIENT\n\nGet many database pages : Interroge la base de données Notion pour vérifier si ce client existe déjà.\n\nCondition (If2) :\n\n↳ Nouveau client ➡️ Crée la fiche dans Notion (Notion Create Client) ➡️ Génère les coordonnées GPS via l'adresse textuelle ➡️ Crée en parallèle le prospect/contact sur Axonaut et le client sur Pennylane.\n\n↳ Client existant ➡️ Passe directement à l'étape suivante pour éviter les doublons.\n\n📈 3. CRÉATION DE L'OPPORTUNITÉ (PIPELINE)\n\nGet database pages2 & If3 : Vérifie si ce projet précis est déjà enregistré dans votre pipeline.\n\nNotion Create Pipeline1 : Si le projet est nouveau, il est ajouté au pipeline à l'étape \"Make Contact\".\n\nCondition Finale (If) : Si le prospect avait envoyé des photos ou fichiers, la page du pipeline Notion est automatiquement mise à jour avec les liens de ces médias via une requête HTTP.",
+        "height": 416,
+        "width": 1040
+      },
+      "id": "042ca729-a36f-4b25-8b6a-560c59156ac1",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1072,
+        1200
+      ]
+    },
+    {
+      "parameters": {
+        "content": "1. RÉCEPTION DES EMAILS\n\nGmail Trigger : surveille le libellé « CLIENTS/prospect IA » (par son identifiant) et ne déclenche un passage que s'il y a un e-mail NON LU à traiter. Quand il n'y a rien de nouveau, aucune exécution n'est créée — il interroge Gmail de son côté.\n\nRattrapage manuel (bouton « Execute workflow ») : relit les e-mails NON LUS du libellé pour rejouer un mail que le déclencheur aurait manqué.\n\nGet a message : Récupère le contenu complet de l'e-mail sélectionné.\n\nCode in JavaScript : Nettoie le texte en retirant les balises d'images pour faciliter le travail de l'IA.\n\n🧠 2. ANALYSE PAR INTELLIGENCE ARTIFICIELLE\n\nAI Agent (Gemini) : Analyse le corps du mail pour extraire proprement toutes les coordonnées du prospect (Nom, Téléphone, Type de projet, Localisation, etc.).\n\n📂 3. GESTION DES PIÈCES JOINTES & CLÔTURE\n\nRécupération des médias : Télécharge et prépare les fichiers ou photos contenus dans l'e-mail.\n\nCondition (If1) :\n\n↳ Si présence de fichiers ➡️ Envoi sur Google Drive (Upload) ➡️ Partage public du fichier (Share) ➡️ Envoi vers le point de regroupement (Merge).\n\n↳ Si aucun fichier ➡️ Passe directement au point de regroupement (Merge).\n\nMark as read : une fois la fiche créée dans Notion, l'e-mail est marqué comme lu — il sort alors du filtre « non lus » et ne sera pas retraité.",
+        "height": 400,
+        "width": 1056
+      },
+      "id": "23e80401-9ab2-4e20-82c0-c581483b2057",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        512,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.notion.com/v1/pages/{{ $('Notion Create Client').item.json.id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "notionApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2025-09-03"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"properties\": {\n    \"Adresse Facturation\": {\n      \"place\": {\n        \"lat\": {{ parseFloat($('transformer l\\'adresse texte en coordonnées GPS').first().json.lat) }},\n        \"lon\": {{ parseFloat($('transformer l\\'adresse texte en coordonnées GPS').first().json.lon) }},\n        \"name\": \"{{ $json.display_name }}\",\n        \"formatted_address\": \"{{ $json.display_name }}\"\n      }\n    }\n  }\n}",
+        "options": {}
+      },
+      "id": "62a75f80-92aa-44c4-bcda-f3e95417e6a7",
+      "name": "ajoute de l'adresse  sur la page du client",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2992,
+        1536
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://nominatim.openstreetmap.org/search",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ ($('Variables Normalisées1').first().json.localisation || '').split(' - ').filter(texte => !texte.includes('estimation')).join(', ') }}"
+            },
+            {
+              "name": "format",
+              "value": "json"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "MonWorkflow-n8n"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5188831c-869f-49e2-bdb0-b23c38a7cc5e",
+      "name": "transformer l'adresse texte en coordonnées GPS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2768,
+        1536
+      ]
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "maxResults": 1,
+        "filters": {
+          "labelIds": [
+            "REPLACE_GMAIL_QUEUE_LABEL_ID"
+          ]
+        }
+      },
+      "id": "50aaf571-0ceb-40c1-9383-9dc2b9bcb4c0",
+      "name": "Gmail Trigger",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        560,
+        656
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Sort l'adresse de l'expediteur, exploitable sans IA.\nconst out = [];\nfor (const item of $input.all()) {\n  const j = { ...item.json };\n  const brut = j.headers?.from || j.from || '';\n  const m = String(brut).match(/<([^>]+)>/);\n  j.email_expediteur = (m ? m[1] : String(brut)).trim().toLowerCase();\n  out.push({ json: j });\n}\nreturn out;\n"
+      },
+      "id": "f720a9b5-b6f4-4d41-a5ca-05bfd2190ddb",
+      "name": "Extraire l'expediteur",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1152,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "REPLACE_NOTION_CLIENTS_DATABASE_ID",
+          "mode": "id"
+        },
+        "limit": 1,
+        "filterType": "json",
+        "filterJson": "={\n  \"property\": \"Email Facturation\",\n  \"email\": {\n    \"equals\": \"{{ $json.email_expediteur }}\"\n  }\n}",
+        "options": {}
+      },
+      "id": "8fb0a33d-210f-4478-8a82-d71fefc17e05",
+      "name": "Prospect connu ?",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "alwaysOutputData": true,
+      "position": [
+        1312,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a1b2c3d4-0000-4000-8000-000000000001",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "2ee1480c-45f0-407a-acbf-07e6bcf0ccc1",
+      "name": "Si connu",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1472,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "removeLabels",
+        "messageId": "={{ $('Get a message').first().json.id }}",
+        "labelIds": [
+          "REPLACE_GMAIL_QUEUE_LABEL_ID"
+        ]
+      },
+      "id": "17c7c6c8-49d3-4024-9a82-d75537e641f7",
+      "name": "Retirer libelle file",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1632,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $('Get a message').first().json.id }}",
+        "labelIds": [
+          "REPLACE_GMAIL_PROCESSED_LABEL_ID"
+        ]
+      },
+      "id": "f33bcbf3-0680-4212-ab2d-ecff460c20c3",
+      "name": "Poser libelle traite",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1808,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a1b2c3d4-0000-4000-8000-000000000002",
+              "leftValue": "={{ $('Variables Normalisées1').first().json['URL plateforme'] }}",
+              "rightValue": "http",
+              "operator": {
+                "type": "string",
+                "operation": "startsWith",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "0f547f34-3cbb-4bfe-8374-37236bdb3dfc",
+      "name": "URL plateforme ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2768,
+        944
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.notion.com/v1/pages/{{ $('Notion Create Pipeline1').item.json.id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "notionApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"properties\": {\n    \"Étape\": {\n      \"status\": { \"name\": \"Make Contact\" }\n    }\n  }\n}",
+        "options": {}
+      },
+      "id": "123fe4eb-4dee-45c0-a8b2-6e709727232e",
+      "name": "Poser l'etape",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        3104,
+        992
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "1c58ca5f-0532-4314-97c8-b51813cbb63d",
+      "name": "DeepSeek Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        1024,
+        832
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "REPLACE_GMAIL_WEBHOOK_PATH",
+        "options": {}
+      },
+      "id": "def3f0bc-ef9f-4ee7-9504-a4094f3d8b4d",
+      "name": "Bouton Gmail",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        560,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Le script Google envoie { messageId }. Une entree vide n'alimente rien :\n// la chaine ne tourne pas, et aucune execution inutile n'est creee.\nconst out = [];\nfor (const item of $input.all()) {\n  const j = item.json || {};\n  const corps = j.body || j;\n  const id = String(corps.messageId || corps.message_id || corps.id || '').trim();\n  if (!id) continue;\n  out.push({ json: { id, messageId: id, origine: 'bouton-gmail' } });\n}\nreturn out;\n"
+      },
+      "id": "7f0098d2-8735-42db-aec7-b049111a481a",
+      "name": "Lire l'entree",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        736,
+        208
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Notion Create Client": {
+      "main": [
+        [
+          {
+            "node": "URL plateforme ?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "transformer l'adresse texte en coordonnées GPS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many database pages": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "URL plateforme ?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notion Create Client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Variables Normalisées1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Travaux.com Scraper": {
+      "main": [
+        [
+          {
+            "node": "Variables Normalisées1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HabitatPresto Scraper": {
+      "main": [
+        [
+          {
+            "node": "Variables Normalisées1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "houzzscrapper": {
+      "main": [
+        [
+          {
+            "node": "code houzz",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many database pages2": {
+      "main": [
+        [
+          {
+            "node": "If3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion Create Pipeline1": {
+      "main": [
+        [
+          {
+            "node": "Poser l'etape",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Retirer libelle file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "recupere les fichiers du mail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "recupere  les medias": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          },
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Axonaut Create Prospect": {
+      "main": [
+        [
+          {
+            "node": "Axonaut Create Contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload file": {
+      "main": [
+        [
+          {
+            "node": "Share file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Share file": {
+      "main": [
+        [
+          {
+            "node": "Fix ID Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Variables Normalisées1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Get many database pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fix ID Drive": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "code houzz": {
+      "main": [
+        [
+          {
+            "node": "Variables Normalisées1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a message": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Extraire l'expediteur",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "recupere les fichiers du mail": {
+      "main": [
+        [
+          {
+            "node": "recupere  les medias",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Upload file",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "transformer l'adresse texte en coordonnées GPS": {
+      "main": [
+        [
+          {
+            "node": "ajoute de l'adresse  sur la page du client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bouton Gmail": {
+      "main": [
+        [
+          {
+            "node": "Lire l'entree",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lire l'entree": {
+      "main": [
+        [
+          {
+            "node": "Get a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraire l'expediteur": {
+      "main": [
+        [
+          {
+            "node": "Prospect connu ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prospect connu ?": {
+      "main": [
+        [
+          {
+            "node": "Si connu",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Si connu": {
+      "main": [
+        [
+          {
+            "node": "Retirer libelle file",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepSeek Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retirer libelle file": {
+      "main": [
+        [
+          {
+            "node": "Poser libelle traite",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If3": {
+      "main": [
+        [
+          {
+            "node": "Notion Create Pipeline1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Retirer libelle file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "URL plateforme ?": {
+      "main": [
+        [
+          {
+            "node": "Get many database pages2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notion Create Pipeline1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Poser l'etape": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Retirer libelle file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ajoute de l'adresse  sur la page du client": {
+      "main": [
+        [
+          {
+            "node": "Retirer libelle file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "nodeGroups": [],
+  "tags": []
+}
